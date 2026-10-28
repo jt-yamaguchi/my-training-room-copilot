@@ -157,8 +157,112 @@ body {
   padding: 32px 0;
 }
 
+.room-page {
+  max-width: 800px;
+}
+
+.room-page section {
+  margin-bottom: 36px;
+}
+
+.room-page h2 {
+  font-size: 1.15rem;
+  margin: 0 0 14px;
+}
+
+.room-form {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+  margin-bottom: 32px;
+}
+
+.room-form label {
+  display: grid;
+  gap: 5px;
+  font-weight: 600;
+}
+
+.room-form input,
+.room-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+}
+
+.room-form textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.room-form button,
+.room-actions button {
+  padding: 8px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.room-form-actions,
+.room-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.room-form .room-cancel,
+.room-actions .room-delete {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--danger);
+}
+
+.room-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.room-item h3,
+.room-item p {
+  margin: 0;
+}
+
+.room-item h3 {
+  font-size: 1rem;
+}
+
+.room-item p {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
 @media (max-width: 560px) {
   .task-form {
     grid-template-columns: 1fr;
+  }
+
+  .room-item {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

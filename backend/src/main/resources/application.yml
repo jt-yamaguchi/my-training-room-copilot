@@ -11,6 +11,9 @@ spring:
       # スキーマはFlywayが管理する。validate から変更してはいけない
       ddl-auto: validate
     open-in-view: false
+  jackson:
+    deserialization:
+      accept-float-as-int: false
   flyway:
     enabled: true
 

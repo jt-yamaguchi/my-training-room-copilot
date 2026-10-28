@@ -1,11 +1,32 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
+import { getRooms } from './api/rooms';
 
-// 実装を始めたら、このテストはお手本(training-task の App.test.tsx)を模倣して書き換えること
+vi.mock('./api/rooms', () => ({
+  createRoom: vi.fn(),
+  deleteRoom: vi.fn(),
+  getRooms: vi.fn(),
+  updateRoom: vi.fn(),
+}));
+
 describe('App', () => {
-  it('プレースホルダ画面が表示される', () => {
+  afterEach(() => {
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('会議室管理画面へのリンクを表示する', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: '会議室予約システム' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '会議室を管理する' })).toHaveAttribute('href', '/rooms');
+  });
+
+  it('会議室管理画面のパスで管理画面を表示する', async () => {
+    vi.mocked(getRooms).mockResolvedValue([]);
+    window.history.replaceState({}, '', '/rooms');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: '会議室管理' })).toBeInTheDocument();
   });
 });
