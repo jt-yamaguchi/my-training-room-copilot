@@ -15,10 +15,12 @@ describe('App', () => {
     window.history.replaceState({}, '', '/');
   });
 
-  it('会議室管理画面へのリンクを表示する', () => {
+  it('会議室管理画面へのリンクと予約登録画面を表示する', async () => {
+    vi.mocked(getRooms).mockResolvedValue([]);
     render(<App />);
     expect(screen.getByRole('heading', { name: '会議室予約システム' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '会議室を管理する' })).toHaveAttribute('href', '/rooms');
+    expect(await screen.findByRole('heading', { name: '予約を登録' })).toBeInTheDocument();
   });
 
   it('会議室管理画面のパスで管理画面を表示する', async () => {
