@@ -1,13 +1,19 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createReservation } from '../api/reservations';
+import {
+  createReservation,
+  getReservationsByDate,
+  getReservationsByRoom,
+} from '../api/reservations';
 import { getRooms } from '../api/rooms';
 import type { Room } from '../api/types';
 import ReservationRegistration from './ReservationRegistration';
 
 vi.mock('../api/reservations', () => ({
   createReservation: vi.fn(),
+  getReservationsByDate: vi.fn(),
+  getReservationsByRoom: vi.fn(),
 }));
 
 vi.mock('../api/rooms', () => ({
@@ -20,6 +26,8 @@ describe('ReservationRegistration', () => {
     vi.mocked(getRooms).mockResolvedValue([
       { id: 1, name: 'A会議室', capacity: 6, notes: null } satisfies Room,
     ]);
+    vi.mocked(getReservationsByDate).mockResolvedValue([]);
+    vi.mocked(getReservationsByRoom).mockResolvedValue([]);
   });
 
   it('入力内容で予約を登録して成功メッセージを表示する', async () => {
@@ -69,5 +77,53 @@ describe('ReservationRegistration', () => {
     await user.click(screen.getByRole('button', { name: '予約を登録' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('指定した時間帯には既に予約があります。');
+  });
+
+  it('日付別の全会議室予約と会議室別予約を照会する', async () => {
+    vi.mocked(getRooms).mockResolvedValue([
+      { id: 1, name: 'A会議室', capacity: 6, notes: null },
+      { id: 2, name: 'B会議室', capacity: 8, notes: null },
+    ]);
+    vi.mocked(getReservationsByDate).mockResolvedValue([
+      {
+        roomId: 1,
+        roomName: 'A会議室',
+        reservations: [{
+          id: 11,
+          roomId: 1,
+          roomName: 'A会議室',
+          date: '2099-01-02',
+          startTime: '10:00',
+          endTime: '11:00',
+          title: '設計レビュー',
+          organizerName: '山田',
+        }],
+      },
+      { roomId: 2, roomName: 'B会議室', reservations: [] },
+    ]);
+    vi.mocked(getReservationsByRoom).mockResolvedValue([{
+      id: 11,
+      roomId: 1,
+      roomName: 'A会議室',
+      date: '2099-01-02',
+      startTime: '10:00',
+      endTime: '11:00',
+      title: '設計レビュー',
+      organizerName: '山田',
+    }]);
+    const user = userEvent.setup();
+    render(<ReservationRegistration />);
+
+    expect(await screen.findByText('設計レビュー')).toBeInTheDocument();
+    expect(screen.getByText('予約はありません。')).toBeInTheDocument();
+    expect(getReservationsByDate).toHaveBeenCalled();
+    expect(getReservationsByRoom).toHaveBeenCalledWith(1);
+
+    await user.clear(screen.getByLabelText('照会する日付'));
+    await user.type(screen.getByLabelText('照会する日付'), '2099-01-02');
+    expect(getReservationsByDate).toHaveBeenLastCalledWith('2099-01-02');
+
+    await user.selectOptions(screen.getByLabelText('照会する会議室'), '2');
+    expect(getReservationsByRoom).toHaveBeenLastCalledWith(2);
   });
 });

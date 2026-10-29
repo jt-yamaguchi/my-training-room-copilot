@@ -5,10 +5,15 @@ import com.example.training.common.ConflictException;
 import com.example.training.common.NotFoundException;
 import com.example.training.reservation.dto.ReservationRequest;
 import com.example.training.reservation.dto.ReservationResponse;
+import com.example.training.reservation.dto.ReservationScheduleResponse;
 import com.example.training.room.Room;
 import com.example.training.room.RoomRepository;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,5 +56,29 @@ public class ReservationService {
                 request.startTime(),
                 request.endTime()));
         return ReservationResponse.from(reservation);
+    }
+
+    public List<ReservationScheduleResponse> findByDate(LocalDate date) {
+        Map<Long, List<ReservationResponse>> reservationsByRoom = reservationRepository
+                .findAllByDateWithRoom(date).stream()
+                .collect(Collectors.groupingBy(
+                        reservation -> reservation.getRoom().getId(),
+                        Collectors.mapping(ReservationResponse::from, Collectors.toList())));
+
+        return roomRepository.findAllByOrderByNameAsc().stream()
+                .map(room -> new ReservationScheduleResponse(
+                        room.getId(),
+                        room.getName(),
+                        reservationsByRoom.getOrDefault(room.getId(), List.of())))
+                .toList();
+    }
+
+    public List<ReservationResponse> findByRoom(Long roomId) {
+        if (!roomRepository.existsById(roomId)) {
+            throw new NotFoundException("会議室が見つかりません。");
+        }
+        return reservationRepository.findAllByRoomIdWithRoomOrderByDateAndStartTime(roomId).stream()
+                .map(ReservationResponse::from)
+                .toList();
     }
 }

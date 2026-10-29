@@ -1,4 +1,8 @@
-import type { Reservation, ReservationRequest } from './types';
+import type {
+  Reservation,
+  ReservationRequest,
+  ReservationSchedule,
+} from './types';
 
 async function getErrorMessage(response: Response): Promise<string> {
   const body: unknown = await response.json();
@@ -25,4 +29,22 @@ export async function createReservation(
     throw new Error(await getErrorMessage(response));
   }
   return (await response.json()) as Reservation;
+}
+
+export async function getReservationsByDate(
+  date: string,
+): Promise<ReservationSchedule[]> {
+  const response = await fetch(`/api/reservations?date=${encodeURIComponent(date)}`);
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+  return (await response.json()) as ReservationSchedule[];
+}
+
+export async function getReservationsByRoom(roomId: number): Promise<Reservation[]> {
+  const response = await fetch(`/api/rooms/${roomId}/reservations`);
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+  return (await response.json()) as Reservation[];
 }
