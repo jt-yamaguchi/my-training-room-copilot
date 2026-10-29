@@ -270,6 +270,25 @@ body {
   gap: 8px;
 }
 
+.reservation-cancel {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--danger);
+  font: inherit;
+  cursor: pointer;
+}
+
+.reservation-cancel:hover {
+  border-color: var(--danger);
+}
+
+.reservation-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .room-page section {
   margin-bottom: 36px;
 }

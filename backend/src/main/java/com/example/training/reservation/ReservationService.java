@@ -81,4 +81,12 @@ public class ReservationService {
                 .map(ReservationResponse::from)
                 .toList();
     }
+
+    @Transactional
+    public void delete(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new NotFoundException("予約が見つかりません。"));
+        reservationRepository.delete(reservation);
+        reservationRepository.flush();
+    }
 }
