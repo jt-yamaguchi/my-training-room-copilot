@@ -1,6 +1,7 @@
 package com.example.training.reservation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -125,6 +126,66 @@ class ReservationApiTest {
         assertReservationCount(0);
     }
 
+    @Test
+    void 指定日の予約状況を会議室名と開始時刻順で空室も含めて取得する() throws Exception {
+        String roomBId = createRoom("B会議室");
+        String roomAId = createRoom("A会議室");
+        createRoom("C会議室");
+        String targetDate = LocalDate.now(BUSINESS_ZONE).plusDays(1).toString();
+        String otherDate = LocalDate.now(BUSINESS_ZONE).plusDays(2).toString();
+        createReservation(roomBId, targetDate, "09:00", "10:00");
+        createReservation(roomAId, targetDate, "11:00", "12:00");
+        createReservation(roomAId, targetDate, "10:00", "11:00");
+        createReservation(roomAId, otherDate, "13:00", "14:00");
+
+        mockMvc.perform(get("/api/reservations").param("date", targetDate))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].roomName").value("A会議室"))
+                .andExpect(jsonPath("$[0].reservations.length()").value(2))
+                .andExpect(jsonPath("$[0].reservations[0].startTime").value("10:00"))
+                .andExpect(jsonPath("$[0].reservations[1].startTime").value("11:00"))
+                .andExpect(jsonPath("$[1].roomName").value("B会議室"))
+                .andExpect(jsonPath("$[1].reservations.length()").value(1))
+                .andExpect(jsonPath("$[2].roomName").value("C会議室"))
+                .andExpect(jsonPath("$[2].reservations.length()").value(0));
+    }
+
+    @Test
+    void 会議室別予約を日付と開始時刻順で取得し存在しない会議室は404を返す() throws Exception {
+        String roomId = createRoom("A会議室");
+        String otherRoomId = createRoom("B会議室");
+        String tomorrow = LocalDate.now(BUSINESS_ZONE).plusDays(1).toString();
+        String dayAfterTomorrow = LocalDate.now(BUSINESS_ZONE).plusDays(2).toString();
+        createReservation(roomId, dayAfterTomorrow, "10:00", "11:00");
+        createReservation(roomId, tomorrow, "11:00", "12:00");
+        createReservation(roomId, tomorrow, "09:00", "10:00");
+        createReservation(otherRoomId, tomorrow, "08:00", "09:00");
+
+        mockMvc.perform(get("/api/rooms/{roomId}/reservations", roomId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].startTime").value("09:00"))
+                .andExpect(jsonPath("$[1].startTime").value("11:00"))
+                .andExpect(jsonPath("$[2].date").value(dayAfterTomorrow))
+                .andExpect(jsonPath("$[2].startTime").value("10:00"));
+
+        mockMvc.perform(get("/api/rooms/999999/reservations"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("会議室が見つかりません。"));
+    }
+
+    @Test
+    void 日付が不正または未指定の場合は400を返す() throws Exception {
+        mockMvc.perform(get("/api/reservations").param("date", "not-a-date"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").exists());
+
+        mockMvc.perform(get("/api/reservations"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
     private String createRoom(String name) throws Exception {
         MvcResult created = mockMvc.perform(post("/api/rooms")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -135,6 +196,14 @@ class ReservationApiTest {
                 .andReturn();
         Object id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
         return String.valueOf(id);
+    }
+
+    private void createReservation(String roomId, String date, String startTime, String endTime)
+            throws Exception {
+        mockMvc.perform(post("/api/reservations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(reservationRequest(roomId, date, startTime, endTime)))
+                .andExpect(status().isCreated());
     }
 
     private String reservationRequest(String roomId, String date, String startTime, String endTime) {

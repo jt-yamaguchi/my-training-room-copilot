@@ -14,6 +14,8 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     List<Room> findAllByOrderByIdAsc();
 
+    List<Room> findAllByOrderByNameAsc();
+
     boolean existsByName(String name);
 
     boolean existsByNameAndIdNot(String name, Long id);

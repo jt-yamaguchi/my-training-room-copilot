@@ -2,6 +2,7 @@ package com.example.training.reservation;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,4 +22,22 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("date") LocalDate date,
             @Param("startTime") LocalTime startTime,
             @Param("endTime") LocalTime endTime);
+
+    @Query("""
+            SELECT reservation
+            FROM Reservation reservation
+            JOIN FETCH reservation.room
+            WHERE reservation.date = :date
+            ORDER BY reservation.room.name, reservation.startTime, reservation.id
+            """)
+    List<Reservation> findAllByDateWithRoom(@Param("date") LocalDate date);
+
+    @Query("""
+            SELECT reservation
+            FROM Reservation reservation
+            JOIN FETCH reservation.room
+            WHERE reservation.room.id = :roomId
+            ORDER BY reservation.date, reservation.startTime, reservation.id
+            """)
+    List<Reservation> findAllByRoomIdWithRoomOrderByDateAndStartTime(@Param("roomId") Long roomId);
 }

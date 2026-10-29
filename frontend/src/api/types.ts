@@ -22,6 +22,12 @@ export type Reservation = {
   organizerName: string;
 };
 
+export type ReservationSchedule = {
+  roomId: number;
+  roomName: string;
+  reservations: Reservation[];
+};
+
 export type ReservationRequest = {
   roomId: number;
   date: string;
