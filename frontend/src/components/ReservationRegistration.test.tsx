@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createReservation,
+  deleteReservation,
   getReservationsByDate,
   getReservationsByRoom,
 } from '../api/reservations';
@@ -12,6 +13,7 @@ import ReservationRegistration from './ReservationRegistration';
 
 vi.mock('../api/reservations', () => ({
   createReservation: vi.fn(),
+  deleteReservation: vi.fn(),
   getReservationsByDate: vi.fn(),
   getReservationsByRoom: vi.fn(),
 }));
@@ -125,5 +127,77 @@ describe('ReservationRegistration', () => {
 
     await user.selectOptions(screen.getByLabelText('照会する会議室'), '2');
     expect(getReservationsByRoom).toHaveBeenLastCalledWith(2);
+  });
+
+  it('予約を取り消すと一覧を更新して成功メッセージを表示する', async () => {
+    const reservation = {
+      id: 11,
+      roomId: 1,
+      roomName: 'A会議室',
+      date: '2099-01-02',
+      startTime: '10:00',
+      endTime: '11:00',
+      title: '設計レビュー',
+      organizerName: '山田',
+    };
+    vi.mocked(getReservationsByDate)
+      .mockResolvedValueOnce([{
+        roomId: 1,
+        roomName: 'A会議室',
+        reservations: [reservation],
+      }])
+      .mockResolvedValue([{
+        roomId: 1,
+        roomName: 'A会議室',
+        reservations: [],
+      }]);
+    vi.mocked(getReservationsByRoom)
+      .mockResolvedValueOnce([reservation])
+      .mockResolvedValue([]);
+    vi.mocked(deleteReservation).mockResolvedValue();
+    const user = userEvent.setup();
+    render(<ReservationRegistration />);
+
+    const cancelButtons = await screen.findAllByRole('button', {
+      name: '設計レビューの予約を取り消す',
+    });
+    await user.click(cancelButtons[0]);
+
+    expect(deleteReservation).toHaveBeenCalledWith(11);
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      '設計レビューの予約を取り消しました。',
+    );
+    expect(await screen.findAllByText('予約はありません。')).toHaveLength(2);
+    expect(getReservationsByDate).toHaveBeenCalledTimes(2);
+    expect(getReservationsByRoom).toHaveBeenCalledTimes(2);
+  });
+
+  it('予約取り消しAPIのエラーを画面に表示する', async () => {
+    const reservation = {
+      id: 12,
+      roomId: 1,
+      roomName: 'A会議室',
+      date: '2099-01-02',
+      startTime: '10:00',
+      endTime: '11:00',
+      title: '設計レビュー',
+      organizerName: '山田',
+    };
+    vi.mocked(getReservationsByDate).mockResolvedValue([{
+      roomId: 1,
+      roomName: 'A会議室',
+      reservations: [reservation],
+    }]);
+    vi.mocked(getReservationsByRoom).mockResolvedValue([reservation]);
+    vi.mocked(deleteReservation).mockRejectedValue(new Error('予約が見つかりません。'));
+    const user = userEvent.setup();
+    render(<ReservationRegistration />);
+
+    await user.click((await screen.findAllByRole('button', {
+      name: '設計レビューの予約を取り消す',
+    }))[0]);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('予約が見つかりません。');
+    expect(screen.getAllByText('設計レビュー')).toHaveLength(2);
   });
 });

@@ -48,3 +48,12 @@ export async function getReservationsByRoom(roomId: number): Promise<Reservation
   }
   return (await response.json()) as Reservation[];
 }
+
+export async function deleteReservation(reservationId: number): Promise<void> {
+  const response = await fetch(`/api/reservations/${reservationId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+}

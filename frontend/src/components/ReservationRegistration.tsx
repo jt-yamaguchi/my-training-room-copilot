@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import {
   createReservation,
+  deleteReservation,
   getReservationsByDate,
   getReservationsByRoom,
 } from '../api/reservations';
@@ -55,6 +56,7 @@ export default function ReservationRegistration() {
   const [loading, setLoading] = useState(true);
   const [scheduleLoading, setScheduleLoading] = useState(true);
   const [roomScheduleLoading, setRoomScheduleLoading] = useState(false);
+  const [deletingReservationId, setDeletingReservationId] = useState<number | null>(null);
 
   useEffect(() => {
     async function loadRooms() {
@@ -153,6 +155,21 @@ export default function ReservationRegistration() {
       setRefreshToken((current) => current + 1);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '予約を登録できませんでした。');
+    }
+  }
+
+  async function removeReservation(reservation: Reservation) {
+    setError('');
+    setMessage('');
+    setDeletingReservationId(reservation.id);
+    try {
+      await deleteReservation(reservation.id);
+      setMessage(`${reservation.title}の予約を取り消しました。`);
+      setRefreshToken((current) => current + 1);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : '予約を取り消せませんでした。');
+    } finally {
+      setDeletingReservationId(null);
     }
   }
 
@@ -266,6 +283,15 @@ export default function ReservationRegistration() {
                         <time>{reservation.startTime}〜{reservation.endTime}</time>
                         <span>{reservation.title}</span>
                         <span>予約者: {reservation.organizerName}</span>
+                        <button
+                          className="reservation-cancel"
+                          type="button"
+                          aria-label={`${reservation.title}の予約を取り消す`}
+                          disabled={deletingReservationId === reservation.id}
+                          onClick={() => void removeReservation(reservation)}
+                        >
+                          取り消し
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -301,6 +327,15 @@ export default function ReservationRegistration() {
                 <time>{reservation.date} {reservation.startTime}〜{reservation.endTime}</time>
                 <span>{reservation.title}</span>
                 <span>予約者: {reservation.organizerName}</span>
+                <button
+                  className="reservation-cancel"
+                  type="button"
+                  aria-label={`${reservation.title}の予約を取り消す`}
+                  disabled={deletingReservationId === reservation.id}
+                  onClick={() => void removeReservation(reservation)}
+                >
+                  取り消し
+                </button>
               </li>
             ))}
           </ul>

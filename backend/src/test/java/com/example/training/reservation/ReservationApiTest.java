@@ -1,6 +1,7 @@
 package com.example.training.reservation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -184,6 +185,30 @@ class ReservationApiTest {
         mockMvc.perform(get("/api/reservations"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void 予約を取り消すと204を返し同じ時間帯を再予約できる() throws Exception {
+        String roomId = createRoom("A会議室");
+        String tomorrow = LocalDate.now(BUSINESS_ZONE).plusDays(1).toString();
+        MvcResult created = mockMvc.perform(post("/api/reservations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(reservationRequest(roomId, tomorrow, "10:00", "11:00")))
+                .andExpect(status().isCreated())
+                .andReturn();
+        Object reservationId = com.jayway.jsonpath.JsonPath.read(
+                created.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(delete("/api/reservations/{reservationId}", reservationId))
+                .andExpect(status().isNoContent());
+        assertReservationCount(0);
+
+        createReservation(roomId, tomorrow, "10:00", "11:00");
+        assertReservationCount(1);
+
+        mockMvc.perform(delete("/api/reservations/{reservationId}", reservationId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("予約が見つかりません。"));
     }
 
     private String createRoom(String name) throws Exception {
